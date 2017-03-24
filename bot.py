@@ -65,6 +65,3 @@ def show_team(message):
     except MembersError as e:
         bot.send_message(message.chat.id, e)
 
-
-if __name__ == '__main__':
-    bot.polling(none_stop=True)
