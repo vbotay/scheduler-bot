@@ -2,16 +2,16 @@ import telebot
 
 import config
 from utils import tools
-from utils.scheduler import Scheduler
 from utils.decorators import check_new_day
+from utils.scheduler import Scheduler
+from utils.tools import DeletionError
+from utils.tools import MembersError
+from utils.tools import TimeFormatError
+from utils.tools import TimingError
 
 bot = telebot.TeleBot(config.TOKEN)
 
 scheduler = Scheduler()
-from utils.tools import TimeFormatError
-from utils.tools import DeletionError
-from utils.tools import MembersError
-from utils.tools import TimingError
 
 
 @bot.message_handler(commands=['schedule'])
@@ -64,4 +64,3 @@ def show_team(message):
         bot.send_message(message.chat.id, msg)
     except MembersError as e:
         bot.send_message(message.chat.id, e)
-

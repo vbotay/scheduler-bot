@@ -5,10 +5,10 @@ from datetime import timedelta
 import six
 
 import config
-from utils.tools import format_time_input
 from utils.tools import DeletionError
 from utils.tools import MembersError
 from utils.tools import TimingError
+from utils.tools import format_time_input
 
 
 class SingletonMeta(type):
