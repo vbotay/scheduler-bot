@@ -6,7 +6,9 @@ import six
 
 import config
 from utils.tools import format_time_input
-from utils.tools import time_in_range
+from utils.tools import DeletionError
+from utils.tools import MembersError
+from utils.tools import TimingError
 
 
 class SingletonMeta(type):
@@ -40,98 +42,102 @@ class Scheduler(six.with_metaclass(SingletonMeta, object)):
 
     def __check_intervals(self, ptime):
         for start_time, end_time in self.reserved_time:
-            if time_in_range(start_time, end_time, ptime):
-                print('Busy time.'
-                      'There is game from {} to {}.\n'
-                      'Your planed game ends in this time'.format(start_time,
-                                                                    end_time))
+            if start_time <= ptime < end_time:
                 return False
-
             ptime_end = datetime.combine(date.today(), ptime) + self.play_time
             ptime_end = ptime_end.time()
-            if time_in_range(start_time, end_time, ptime_end):
-                print('Busy time.'
-                      'There is game from {} to {}.\n'
-                      'Your planed game ends in this time'.format(start_time,
-                                                                  end_time))
+            if start_time < ptime_end < end_time:
                 return False
         return True
 
     def add_to_schedule(self, input_time, participant):
         ptime = format_time_input(input_time)
-        if not ptime:
-            return
-        if self.check_time(ptime) and self.check_member(ptime, participant):
-            self.schedule[ptime].append(participant)
-            self.reserve_time(ptime)
 
-            if len(self.schedule[ptime]) == config.MEMBERS_MAX:
-                print('>>>>>>>>>>>>>>> FULL HOUSE')
+        self.check_member(ptime, participant)
+        self.check_time(ptime)
 
-    def reserve_time(self, ptime):
+        self.schedule[ptime].append(participant)
+        self.reserve_time(ptime)
+        msg = "{} were added to game {}".format(participant,
+                                                ptime.strftime(self.fmt))
+        if len(self.schedule[ptime]) == config.MEMBERS_MAX:
+            return msg + '>>>>>>>>>>>>>>> FULL HOUSE'
+        else:
+            return msg
+
+    def reserve_time(self, ptime, duration=None):
+        if not duration:
+            duration = self.play_time
+        else:
+            duration = timedelta(minutes=int(duration))
         start_time = ptime
-        end_time = datetime.combine(date.today(), ptime) + self.play_time
+        end_time = datetime.combine(date.today(), ptime) + duration
         end_time = end_time.time()
         if (start_time, end_time) not in self.reserved_time:
             self.reserved_time.append((start_time, end_time))
 
     def print_team(self, input_time):
-        ptime = format_time_input(input_time)
+        if isinstance(input_time, str):
+            ptime = format_time_input(input_time)
+        else:
+            ptime = input_time
+
         if not ptime:
-            return
+            return 'No game was found for this time'
         team = self.schedule.get(ptime)
         if not team:
-            print('No members for this time')
+            return 'For {t}: No members for this time'.format(t=ptime.strftime(self.fmt))
         else:
             msg = 'For {t}: {m}'.format(t=ptime.strftime(self.fmt), m=team)
-            print(msg)
+        print(msg)
+        return msg
 
     def check_time(self, ptime):
         team = self.schedule.get(ptime)
         if team and len(team) == config.MEMBERS_MAX:
-            print('There are no places for this time')
-            return False
+            raise MembersError('There are no places for this time')
         elif team is None:
-            # check time is free
             if not self.__check_intervals(ptime):
-                return
-            print('There are 4 places for this time')
+                msg = ('Busy time.\n'
+                       'Your planed game starts or ends '
+                       'at already scheduled time')
+                raise TimingError(msg)
             self.schedule[ptime] = []
-        return True
 
     def check_member(self, ptime, member):
-        if member in self.schedule[ptime]:
-            print('You has been already applied')
-            return False
-        return True
+        if member in self.schedule.get(ptime, []):
+            raise MembersError('You has been already applied')
 
     def delete_from(self, input_time, member):
         ptime = format_time_input(input_time)
         game = self.schedule.get(ptime)
         if not game:
-            print('no game')
-            return
+            raise DeletionError('Ups, no games for this time')
         if member not in game:
-            print('netu tut tebya')
-            return
+            raise DeletionError('Ups. not your game, bro')
+
         game.remove(member)
-        print('{} was removed'.format(member))
+        return '{} was removed from {}'.format(member, ptime.strftime(self.fmt))
 
     def print_schedule(self):
+        print(self.schedule)
+        sch = []
         for t in self.schedule:
-            self.print_team(t.strftime(self.fmt))
-        # Todo delete next string
+            sch.append(self.print_team(t))
         print(self.reserved_time)
+        return '\n'.join(sch)
 
     def new_day_cleaner(self):
         if self.playday != date.today():
             self.__clear_scheduler()
 
     def my_games(self, member):
-        result = {}
+        result = []
         for ptime in self.schedule:
-            members = self.schedule[ptime]
-            if member in members:
-                result[ptime] = members
-        print(result)
-        return result
+            if member in self.schedule[ptime]:
+                result.append(self.print_team(ptime))
+        if result:
+            print(result)
+            return 'Your games today:\n' + '\n'.join(result)
+        else:
+            return 'No games'

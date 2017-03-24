@@ -1,6 +1,39 @@
 from datetime import time
 
 
+class TimeFormatError(Exception):
+    pass
+
+
+class TimingError(Exception):
+    pass
+
+class DeletionError(Exception):
+    pass
+
+
+class MembersError(Exception):
+    pass
+
+
+def get_user_info(message):
+    """Return info about Telegram user
+
+    :param message: message from telebot api
+    :return: message instance {'username': u'username', 'first_name': u'Ivan',
+    'last_name': u'Ivanov', 'id': XXXXXXXXXX}
+    """
+    return message.from_user
+
+
+def get_username(message):
+    return '@' + get_user_info(message).username
+
+
+def get_command_params(msg):
+    return ' '.join(msg.text.split(' ')[1:])
+
+
 def format_time_input(inp):
     """Check and format input string with time
     to the expected format for scheduler
@@ -12,8 +45,7 @@ def format_time_input(inp):
         raise TypeError('Need a string, {} was passed'.format(type(inp)))
 
     if len(inp) > 5:
-        print('Check input')
-        return
+        raise TimeFormatError('Check input')
 
     delimiters = [' ', ':', '-']
     delimiter = ''
@@ -41,20 +73,14 @@ def format_time_input(inp):
         res = ['0' + inp, '00']
 
     else:
-        print('Check input')
-        return
+        raise TimeFormatError('Check input')
 
-    if not all(map(lambda x: x.isdecimal(), res)):
-        print('Check input, maybe literal in string')
-        return
+    if not all(map(lambda x: x.isdigit(), res)):
+        raise TimeFormatError('Check input maybe literal in string')
 
-    if int(res[0]) not in range(0, 24):
-        print('Check hours format, it should be between 00 and 24')
-        return
-
-    if int(res[1]) not in range(00, 60):
-        print('Check minutes format, it should be between 00 and 59')
-        return
+    if int(res[0]) not in range(0, 24) or int(res[1]) not in range(00, 60):
+        raise TimeFormatError('Minutes should be betwee 0 and 59.\n'
+                              'Hours between 0 and 23')
 
     return time(int(res[0]), int(res[1]))
 
@@ -62,6 +88,6 @@ def format_time_input(inp):
 def time_in_range(start, end, x):
     """Return true if x is in the range [start, end]"""
     if start <= end:
-        return start <= x < end
+        return start < x < end
     else:
-        return start <= x or x < end
+        return start < x or x < end
