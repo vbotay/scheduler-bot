@@ -43,7 +43,7 @@ def delete_from_game(message):
     try:
         msg = scheduler.delete_from(game_time, user)
         bot.send_message(message.chat.id, msg)
-    except DeletionError as e:
+    except (DeletionError, TimeFormatError) as e:
         bot.send_message(message.chat.id, e)
 
 
@@ -62,5 +62,19 @@ def show_team(message):
     try:
         msg = scheduler.print_team(prm)
         bot.send_message(message.chat.id, msg)
-    except MembersError as e:
+    except (TimeFormatError, MembersError) as e:
         bot.send_message(message.chat.id, e)
+
+
+@bot.message_handler(commands=['moveteam'])
+@check_new_day
+def move_teame(message):
+    # TODO implement functionality
+    pass
+
+
+@bot.message_handler(commands=['moveme'])
+@check_new_day
+def move_me(message):
+    # TODO implement functionality
+    pass

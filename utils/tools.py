@@ -80,7 +80,7 @@ def format_time_input(inp):
         raise TimeFormatError('Check input maybe literal in string')
 
     if int(res[0]) not in range(0, 24) or int(res[1]) not in range(00, 60):
-        raise TimeFormatError('Minutes should be betwee 0 and 59.\n'
+        raise TimeFormatError('Minutes should be between 0 and 59.\n'
                               'Hours between 0 and 23')
 
     return time(int(res[0]), int(res[1]))
